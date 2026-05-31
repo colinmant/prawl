@@ -30,7 +30,7 @@ class Farmer:
     def set_on_stop_callback(self, callback):
         self.on_stop_callback = callback
 
-    def start(self, minutes, sequence):
+    def start(self, minutes, sequence, post_sequence=None):
         if self.running:
             return
         logger.info(f'starting sequence: {sequence}')
@@ -53,6 +53,7 @@ class Farmer:
         self.initial_time = minutes * 60
         self.remaining_time = self.initial_time
         self.sequence = sequence
+        self.post_sequence = post_sequence or []
         self.running = True
         self.paused = False
 
@@ -118,6 +119,8 @@ class Farmer:
                 match_completed = self._match_monitor(is_net)
                 if match_completed and self.running:
                     self._match_end()
+                    if self.post_sequence:
+                        self.keyseq.action(self.post_sequence, lambda: self.running, self.network)
                     if self._limits():
                         break
                     self.remaining_time = self.initial_time
@@ -128,9 +131,22 @@ class Farmer:
             self.interface.update_status('inactive')
 
     def _match_monitor(self, is_net):
-        start_t = time.time()
         paused_duration = 0
         threshold_pct = self.interface.get('early_dc_thresh')
+        action_interval = self.interface.get('ingame_action_interval')
+        last_action_t = time.time()
+
+        # wait for match connection before starting the timer
+        if is_net:
+            logger.info('waiting for match connection...')
+            while self.running and not self.network.is_match_active():
+                self.interface.update_status('waiting for match...')
+                sleep(0.5)
+            if not self.running:
+                return False
+            logger.info('match connection established, monitoring...')
+
+        start_t = time.time()
         threshold_time_seconds = (threshold_pct / 100) * self.initial_time
 
         while self.running:
@@ -166,12 +182,26 @@ class Farmer:
 
             self.interface.update_status(status_text)
 
+            if action_interval and (time.time() - last_action_t) >= action_interval:
+                self._ingame_action()
+                last_action_t = time.time()
+
             for _ in range(10):
                 if not self.running:
                     return False
                 sleep(0.1)
 
         return False
+
+    def _ingame_action(self):
+        keys = [
+            self.interface.get('key_left'),
+            self.interface.get('key_right'),
+            self.interface.get('key_light'),
+        ]
+        for key in keys:
+            if key and self.running:
+                self.keyseq.backend.press(key)
 
     def _match_end(self):
         logger.info(f'match ended | game: {self.total_games}')

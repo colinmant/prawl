@@ -43,20 +43,21 @@ class MainCallbacks:
         rc_cmd = f'reconnect{suffix_net}'
 
         if mode == 'oops':
-            return [dc_cmd, rc_cmd]
+            return [dc_cmd, rc_cmd], []
 
         if mode == 'start':
             if is_net:
                 if is_online:
-                    middle_seq = ['spam_menu', 'wait_match_net']
+                    pre_seq = ['wait_restart', 'spam_menu', 'wait_match_net']
                 else:
-                    middle_seq = ['spam_menu_net']
+                    pre_seq = ['wait_restart', 'spam_menu_net']
             else:
-                middle_seq = ['spam_menu', 'wait_match']
+                pre_seq = ['wait_restart', 'spam_menu', 'wait_match']
 
-            return ['wait_restart'] + middle_seq + [dc_cmd, rc_cmd]
+            post_seq = [dc_cmd, rc_cmd]
+            return pre_seq, post_seq
 
-        return []
+        return [], []
 
     # match time slider update
     # ----------------------------------------------
@@ -81,9 +82,9 @@ class MainCallbacks:
         else:
             self.hwnd = self.process.get_hwnd()
             if self.hwnd:
-                sequence = self._get_sequence('start')
+                pre_seq, post_seq = self._get_sequence('start')
                 logger.info(f'starting farmer | hwnd: {self.hwnd}')
-                self.farmer.start(self.interface.get('match_time'), sequence)
+                self.farmer.start(self.interface.get('match_time'), pre_seq, post_seq)
                 self.interface.run_button_update(self.farmer.running)
             else:
                 logger.warning('brawlhalla window not found')
@@ -106,10 +107,10 @@ class MainCallbacks:
         self.hwnd = self.process.get_hwnd()
         if self.hwnd and self.farmer.running:
             self.farmer.pause()
-            sequence = self._get_sequence('oops')
+            oops_seq, _ = self._get_sequence('oops')
             logger.info('retry sequence triggered')
             self.keyseq.action(
-                sequence,
+                oops_seq,
                 lambda: self.farmer.running,
                 self.farmer.network,
             )

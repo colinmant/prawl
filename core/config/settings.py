@@ -12,6 +12,7 @@ class SettingsConfig(Base):
             'reconnect_amount': 2,
             'game_restart_delay': 4,
             'open_menu_hold': False,
+            'ingame_action_interval': 8,
         },
         'network': {
             'network_mode': False,

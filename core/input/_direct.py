@@ -55,7 +55,7 @@ class Keyboard:
         # add key mappings
         self.key_mapping = {
             # special keys
-            'shift': win32con.VK_SHIFT, 'enter': win32con.VK_RETURN, 'space': win32con.VK_SPACE,
+            'shift': win32con.VK_SHIFT, 'enter': win32con.VK_RETURN, 'space': win32con.VK_SPACE, 'spacebar': win32con.VK_SPACE,
             'tab': win32con.VK_TAB, 'backspace': win32con.VK_BACK, 'escape': win32con.VK_ESCAPE, 'esc': win32con.VK_ESCAPE,
             # arrow keys
             'up': win32con.VK_UP, 'down': win32con.VK_DOWN,
